@@ -34,6 +34,7 @@
       const overlay = document.getElementById('overlay');
       const metaEl = document.getElementById('metadata');
       const mapDiv = document.getElementById('map');
+      let mapTimeoutId;
 
       function drawBoxes(bboxes) {
         const ctx = overlay.getContext('2d');
@@ -49,6 +50,9 @@
         });
       }
       function show() {
+        // cancel any pending map load
+        clearTimeout(mapTimeoutId);
+        mapDiv.innerHTML = '';
         // use filename string instead of object destructuring
         const filename = list[idx];
         imgEl.src = '/images/' + filename;
@@ -77,7 +81,7 @@
           }
           if (metadata && metadata.plus_code) {
             mapDiv.textContent = 'Loading map…';
-            setTimeout(() => {
+            mapTimeoutId = setTimeout(() => {
               mapDiv.innerHTML = `
                 <iframe
                   src="https://plus.codes/${metadata.plus_code}"
