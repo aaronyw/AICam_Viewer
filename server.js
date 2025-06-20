@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { spawn, execSync } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,10 +40,28 @@ app.get('/images/metadata', (req, res) => {
       }
     }
     const metadata = raw ? JSON.parse(raw) : null;
+    console.log(`Metadata for ${filename}: ${raw || 'null'}`);
     res.json({ filename, metadata });
   } catch (err) {
-    console.error(err);
+    console.error(`Error reading metadata for ${filename}:`, err);
     res.status(500).json({ error: 'failed to read EXIF' });
+  }
+});
+
+
+// Snapshot endpoint to capture a single frame
+app.get('/snapshot', (req, res) => {
+  // capture one frame from /dev/video0 using v4l2-ctl
+  try {
+    const cmd = 'v4l2-ctl --device=/dev/video0 '
+      + '--set-fmt-video=width=640,height=640,pixelformat=MJPG '
+      + '--stream-mmap --stream-count=1 --stream-to=-';
+    const img = execSync(cmd, { stdio: ['ignore', 'pipe', 'inherit'] });
+    res.set('Content-Type', 'image/jpeg');
+    res.send(img);
+  } catch (err) {
+    console.error('Error capturing snapshot:', err);
+    res.status(500).send('Snapshot error');
   }
 });
 

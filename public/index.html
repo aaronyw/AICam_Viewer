@@ -2,106 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Image + Map Viewer</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Select Mode</title>
   <style>
     body { margin:0; background:#111; color:#eee; font-family:sans-serif; }
-    #container { display:flex; height:100vh; }
-    #left { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-    #left pre { background:rgba(0,0,0,0.5); padding:1em; max-width:90vw; overflow:auto; margin-top:1em; }
-    #map { flex:1; }
-    /* new: container for image + canvas */
-    #viewer-container { position: relative; display: inline-block; }
-    #overlay { position: absolute; top: 0; left: 0; pointer-events: none; }
+    #mode-select { display:flex; flex-direction:row; justify-content:center; align-items:center; height:100vh; gap:2rem; }
+    #mode-select button {
+      width:200px;
+      height:100px;
+      font-size:1.4rem;
+      font-weight:bold;
+      background:#333;
+      color:#eee;
+      border:3px solid #555;
+      border-radius:12px;
+      cursor:pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    #mode-select button:hover {
+      background:#444;
+      border-color:#777;
+    }
   </style>
 </head>
 <body>
-  <div id="container">
-    <div id="left">
-      <div id="viewer-container">
-        <img id="viewer" src="" alt="…loading…">
-        <canvas id="overlay"></canvas>
-      </div>
-      <pre id="metadata">Loading metadata…</pre>
-    </div>
-    <div id="map"></div>
+  <div id="mode-select">
+    <button onclick="location.href='setup.html'">Setup Mode</button>
+    <button onclick="location.href='view.html'">Viewer Mode</button>
   </div>
-
-  <script>
-    (async () => {
-      const list = await (await fetch('/images/list')).json();
-      let idx = 0;
-      const imgEl = document.getElementById('viewer');
-      const overlay = document.getElementById('overlay');
-      const metaEl = document.getElementById('metadata');
-      const mapDiv = document.getElementById('map');
-      let mapTimeoutId;
-
-      function drawBoxes(bboxes) {
-        const ctx = overlay.getContext('2d');
-        const w = imgEl.clientWidth, h = imgEl.clientHeight;
-        overlay.width = w; overlay.height = h;
-        ctx.clearRect(0, 0, w, h);
-        ctx.lineWidth = 2;
-        bboxes.forEach(([cls, xc, yc, bw, bh]) => {
-          ctx.strokeStyle = cls === 0 ? 'red' : 'green';
-          const x = (xc - bw/2) * w;
-          const y = (yc - bh/2) * h;
-          ctx.strokeRect(x, y, bw * w, bh * h);
-        });
-      }
-      function show() {
-        // cancel any pending map load
-        clearTimeout(mapTimeoutId);
-        mapDiv.innerHTML = '';
-        // use filename string instead of object destructuring
-        const filename = list[idx];
-        imgEl.src = '/images/' + filename;
-        metaEl.textContent = 'Loading metadata…';
-        mapDiv.textContent = 'No map available';
-        // clear previous overlay
-        overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
-
-        imgEl.onload = async () => {
-          let metadata = null;
-          try {
-            const res = await fetch(
-              `/images/metadata?filename=${encodeURIComponent(filename)}`
-            );
-            if (res.ok) {
-              const data = await res.json();
-              metadata = data.metadata;
-            }
-          } catch {}
-          metaEl.textContent = metadata
-            ? JSON.stringify(metadata, null, 2)
-            : 'No metadata available';
-
-          if (metadata && Array.isArray(metadata.bbox)) {
-            drawBoxes(metadata.bbox);
-          }
-          if (metadata && metadata.plus_code) {
-            mapDiv.textContent = 'Loading map…';
-            mapTimeoutId = setTimeout(() => {
-              mapDiv.innerHTML = `
-                <iframe
-                  src="https://plus.codes/${metadata.plus_code}"
-                  frameborder="0"
-                  style="width:100%; height:100%;"
-                ></iframe>`;
-            }, 2048);
-          }
-        };
-      }
-
-      document.addEventListener('keydown', e => {
-        if (e.key === 'ArrowRight')      idx = (idx + 1) % list.length;
-        else if (e.key === 'ArrowLeft')  idx = (idx - 1 + list.length) % list.length;
-        show();
-      });
-
-      show();
-    })();
-  </script>
-
 </body>
 </html>
