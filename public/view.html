@@ -17,6 +17,7 @@
 <body>
   <div id="container">
     <div id="left">
+      <button id="snapshot-toggle" style="margin-bottom:1em;">Enable Snapshots</button>
       <div id="viewer-container">
         <img id="viewer" src="" alt="…loading…">
         <canvas id="overlay"></canvas>
@@ -26,7 +27,7 @@
     <div id="map"></div>
   </div>
 
-  <script>
+    <script>
     (async () => {
       const list = await (await fetch('/images/list')).json();
       let idx = 0;

@@ -65,6 +65,58 @@ app.get('/snapshot', (req, res) => {
   }
 });
 
+// manage background snapshot service
+let snapshotProc = null;
+
+function startSnapshotService() {
+  if (!snapshotProc) {
+    // spawn child inheriting stdout/stderr so logs appear in server console
+    snapshotProc = spawn('node', [path.join(__dirname, 'snapshot.js')], { stdio: ['ignore', 'inherit', 'inherit'] });
+    console.log('Snapshot service started');
+  }
+}
+
+function stopSnapshotService() {
+  if (snapshotProc) {
+    try {
+      // kill child process directly
+      snapshotProc.kill();
+      console.log('Snapshot service stopped');
+    } catch (err) {
+      // ignore if process already exited
+      if (err.code !== 'ESRCH') console.error('Error stopping snapshot service:', err);
+    }
+    snapshotProc = null;
+  }
+}
+
+// endpoint to enable snapshot service
+app.post('/snapshot-service/enable', (req, res) => {
+  startSnapshotService();
+  res.json({ running: true });
+});
+
+// endpoint to disable snapshot service
+app.post('/snapshot-service/disable', (req, res) => {
+  stopSnapshotService();
+  res.json({ running: false });
+});
+
+// endpoint to get snapshot service status
+app.get('/snapshot-service/status', (req, res) => {
+  res.json({ running: !!snapshotProc });
+});
+
+// ensure snapshot child is killed when main exits
+['exit','SIGINT','SIGTERM','uncaughtException'].forEach(sig => {
+  process.on(sig, () => {
+    if (snapshotProc) {
+      try { snapshotProc.kill(); } catch {};
+    }
+    process.exit();
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`▶ Listening on http://localhost:${PORT}`);
 });

@@ -28,7 +28,32 @@
 <body>
   <div id="mode-select">
     <button onclick="location.href='setup.html'">Setup Mode</button>
+    <button id="snapshot-toggle">Enable Snapshots</button>
     <button onclick="location.href='view.html'">Viewer Mode</button>
   </div>
+  <script>
+    (async () => {
+      const snapBtn = document.getElementById('snapshot-toggle');
+      async function updateSnapshotStatus() {
+        try {
+          const res = await fetch('/snapshot-service/status');
+          const { running } = await res.json();
+          snapBtn.textContent = running ? 'Disable Snapshots' : 'Enable Snapshots';
+        } catch {
+          snapBtn.textContent = 'Error';
+        }
+      }
+      snapBtn.addEventListener('click', async () => {
+        snapBtn.disabled = true;
+        const statusRes = await fetch('/snapshot-service/status');
+        const { running } = await statusRes.json();
+        const endpoint = running ? '/snapshot-service/disable' : '/snapshot-service/enable';
+        await fetch(endpoint, { method: 'POST' });
+        await updateSnapshotStatus();
+        snapBtn.disabled = false;
+      });
+      await updateSnapshotStatus();
+    })();
+  </script>
 </body>
 </html>
